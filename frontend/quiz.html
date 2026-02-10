@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Quiz - Domande</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .progress-info {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .back-btn {
+            padding: 10px 20px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-btn:hover {
+            background: #7f8c8d;
+        }
+
+        .quiz-box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .question-number {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .question-text {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .option {
+            padding: 20px;
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+
+        .option:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .option.correct {
+            background: #27ae60;
+            color: white;
+            border-color: #27ae60;
+        }
+
+        .option.wrong {
+            background: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+
+        .option.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+
+        .submit-btn:hover {
+            background: #5568d3;
+        }
+
+        .submit-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            display: none;
+        }
+
+        .feedback.correct {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .feedback.wrong {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .finished {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .finished h2 {
+            font-size: 32px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .finished p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="progress-info">
+                <strong id="quizTitle">Quiz</strong> - Domanda <span id="currentQuestion">1</span> di <span id="totalQuestions">0</span>
+            </div>
+            <a href="index.html" class="back-btn">Torna alla Home</a>
+        </div>
+
+        <div class="quiz-box" id="quizBox">
+            <div class="loading">Caricamento domande...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:5000/api';
+
+        const userId = localStorage.getItem('user_id');
+        if (!userId) {
+            window.location.href = 'login.html';
+        }
+
+        // Ottieni numero quiz dall'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const quizNumber = urlParams.get('quiz');
+
+        if (!quizNumber) {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('quizTitle').textContent = `Quiz ${quizNumber}`;
+
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let selectedAnswer = null;
+
+        // Carica le domande
+        async function loadQuestions() {
+            try {
+                const response = await fetch(`${API_URL}/quiz/${quizNumber}`);
+                questions = await response.json();
+
+                document.getElementById('totalQuestions').textContent = questions.length;
+
+                if (questions.length > 0) {
+                    showQuestion();
+                } else {
+                    document.getElementById('quizBox').innerHTML = '<div class="finished"><h2>Nessuna domanda disponibile</h2

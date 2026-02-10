@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS quiz - Home</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .logout-btn {
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 36px;
+        }
+
+        .stats-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .quiz-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .quiz-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            text-align: center;
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+
+        .quiz-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .quiz-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .quiz-title {
+            font-size: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="user-info">
+                 Benvenuto, <strong id="username"></strong>
+            </div>
+            <button class="logout-btn" onclick="logout()">Esci</button>
+        </div>
+
+        <h1>Scegli il Quiz</h1>
+
+        <div class="stats-box">
+            <h2>Le tue Statistiche</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number" id="total">0</div>
+                    <div class="stat-label">Domande Risposte</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="correct" style="color: #27ae60;">0</div>
+                    <div class="stat-label">Risposte Corrette</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="wrong" style="color: #e74c3c;">0</div>
+                    <div class="stat-label">Risposte Errate</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="percentage">0%</div>
+                    <div class="stat-label">Percentuale Corrette</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="quiz-grid" id="quizGrid"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:5000/api';
+
+        // Controlla se l'utente è loggato
+        const userId = localStorage.getItem('user_id');
+        const username = localStorage.getItem('username');
+
+        if (!userId) {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('username').textContent = username;
+
+        // Carica statistiche
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_URL}/stats/${userId}`);
+                const data = await response.json();
+
+                document.getElementById('total').textContent = data.total_questions;
+                document.getElementById('correct').textContent = data.correct_answers;
+                document.getElementById('wrong').textContent = data.wrong_answers;
+                document.getElementById('percentage').textContent = data.percentage + '%';
+            } catch (error) {
+                console.error('Errore nel caricamento delle statistiche:', error);
+            }
+        }
+
+        // Crea le card dei quiz
+        function createQuizCards() {
+            const grid = document.getElementById('quizGrid');
+
+            for (let i = 1; i <= 6; i++) {
+                const card = document.createElement('div');
+                card.className = 'quiz-card';
+                card.onclick = () => startQuiz(i);
+
+                card.innerHTML = `
+                    <div class="quiz-number">Quiz ${i}</div>
+                    <div class="quiz-title">Clicca per iniziare</div>
+                `;
+
+                grid.appendChild(card);
+            }
+        }
+
+        function startQuiz(quizNumber) {
+            window.location.href = `quiz.html?quiz=${quizNumber}`;
+        }
+
+        function logout() {
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('username');
+            window.location.href = 'login.html';
+        }
+
+        // Inizializzazione
+        loadStats();
+        createQuizCards();
+    </script>
+</body>
+</html>
